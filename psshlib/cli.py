@@ -48,7 +48,7 @@ def common_parser():
                       help='timeout (secs) (0 = no timeout) per host (OPTIONAL)')
     parser.add_option('-O', '--option', dest='options', action='append',
                       metavar='OPTION', help='SSH option (OPTIONAL)')
-    parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
+    parser.add_option('-v', '--verbose', dest='verbose', action='count', default=0,
                       help='turn on warning and diagnostic messages (OPTIONAL)')
     parser.add_option('-A', '--askpass', dest='askpass', action='store_true',
                       help='Ask for a password (OPTIONAL)')

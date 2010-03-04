@@ -1,16 +1,17 @@
 # Copyright (c) 2009-2012, Andrew McNabb
 
-from errno import EINTR
-import os
 import fcntl
+import os
+import queue
 import select
 import signal
 import sys
 import threading
-import queue
+import time
+from errno import EINTR
 
-from psshlib.askpass_server import PasswordServer
 from psshlib import psshutil
+from psshlib.askpass_server import PasswordServer
 
 READ_SIZE = 1 << 16
 
@@ -31,6 +32,7 @@ class Manager(object):
         timeout: Maximum allowed execution time in seconds.
     """
     def __init__(self, opts):
+        self._opts = opts
         self.limit = opts.par
         self.timeout = opts.timeout
         self.askpass = opts.askpass
@@ -98,6 +100,8 @@ class Manager(object):
 
     def handle_sigchld(self, number, frame):
         """Apparently we need a sigchld handler to make set_wakeup_fd work."""
+        if self._opts.verbose > 2:
+            print('%s handling sigchld' % time.ctime(), file=sys.stderr)
         for task in self.running:
             if task.proc:
                 task.proc.poll()
@@ -134,8 +138,12 @@ class Manager(object):
         finished_count = 0
         for task in self.running:
             if task.running():
+                if self._opts.verbose > 2:
+                    print('%s task still running' % time.ctime(), file=sys.stderr)
                 still_running.append(task)
             else:
+                if self._opts.verbose > 2:
+                    print('%s task finished' % time.ctime(), file=sys.stderr)
                 self.finished(task)
                 finished_count += 1
         self.running = still_running
@@ -214,8 +222,14 @@ class IOMap(object):
         rlist = list(self.readmap)
         wlist = list(self.writemap)
         try:
+            if self._opts.verbose > 2:
+                print('%s starting select' % time.ctime(), file=sys.stderr)
             rlist, wlist, _ = select.select(rlist, wlist, [], timeout)
+            if self._opts.verbose > 2:
+                print('%s select finished' % time.ctime(), file=sys.stderr)
         except select.error:
+            if self._opts.verbose > 2:
+                print('%s select interrupted' % time.ctime(), file=sys.stderr)
             _, e, _ = sys.exc_info()
             errno = e.args[0]
             if errno == EINTR:

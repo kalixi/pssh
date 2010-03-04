@@ -97,9 +97,14 @@ class Task(object):
 
         # Create the subprocess.  Since we carefully call set_cloexec() on
         # all open files, we specify close_fds=False.
-        print('%s cmd: %s' % (self.host, self.cmd))
+        if self.verbose > 1:
+            print('%s cmd: %s' % (self.host, self.cmd))
+        if self.verbose > 2:
+            print('%s process starting' % time.ctime(), file=sys.stderr)
         self.proc = Popen(self.cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE,
                           close_fds=False, preexec_fn=os.setsid, env=environ)
+        if self.verbose > 2:
+            print('%s process started' % time.ctime(), file=sys.stderr)
         self.timestamp = time.time()
         if self.inputbuffer:
             self.stdin = self.proc.stdin
@@ -210,6 +215,8 @@ class Task(object):
                 self.log_exception(e)
 
     def close_stdout(self, iomap):
+        if self.verbose > 2:
+            print('%s closing stdout' % time.ctime(), file=sys.stderr)
         if self.stdout:
             iomap.unregister(self.stdout.fileno())
             self.stdout.close()
@@ -236,6 +243,8 @@ class Task(object):
                 self.log_exception(e)
 
     def close_stderr(self, iomap):
+        if self.verbose > 2:
+            print('%s closing stderr' % time.ctime(), file=sys.stderr)
         if self.stderr:
             iomap.unregister(self.stderr.fileno())
             self.stderr.close()
