@@ -1,13 +1,12 @@
 # Copyright (c) 2012, Rafal Lewczuk
 
+import os
 import unittest
-from os import getcwd as cwd
 
 import psshlib.groupsets as g
 
 
 class TestHgRegex(unittest.TestCase):
-
     def testRegex01(self):
         m = g.re_line0.match('test: a,b,c')
         self.assertTrue(m != None)
@@ -38,7 +37,7 @@ class TestHgRegex(unittest.TestCase):
 class TestHostgroups(unittest.TestCase):
 
     def setUp(self):
-        self.cwd = cwd()
+        self.cwd = os.getcwd()
         if not self.cwd.endswith("/test"):
             self.cwd = "%s/test" % self.cwd
         self.groups = g.GroupSet(self.cwd + "/hostgroups")
