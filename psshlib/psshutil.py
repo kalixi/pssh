@@ -2,13 +2,14 @@
 # Copyright (c) 2003-2008, Brent N. Chun
 
 import fcntl
-import string
+import re
 import sys
+import fnmatch
 
 HOST_FORMAT = 'Host format is [user@]host[:port] [user]'
 
 
-def read_host_files(paths, default_user=None, default_port=None):
+def read_host_files(paths, host_glob, default_user=None, default_port=None):
     """Reads the given host files.
 
     Returns a list of (host, port, user) triples.
@@ -16,11 +17,11 @@ def read_host_files(paths, default_user=None, default_port=None):
     hosts = []
     if paths:
         for path in paths:
-            hosts.extend(read_host_file(path, default_user=default_user))
+            hosts.extend(read_host_file(path, host_glob, default_user=default_user))
     return hosts
 
 
-def read_host_file(path, default_user=None, default_port=None):
+def read_host_file(path, host_glob, default_user=None, default_port=None):
     """Reads the given host file.
 
     Lines are of the form: host[:port] [login].
@@ -34,12 +35,14 @@ def read_host_file(path, default_user=None, default_port=None):
 
     hosts = []
     for line in lines:
-        # Skip blank lines or lines starting with #
+        # remove trailing comments
+        line = re.sub('#.*', '', line)
         line = line.strip()
-        if not line or line.startswith('#'):
+        # skip blank lines (or lines with only comments)
+        if not line:
             continue
         host, port, user = parse_host_entry(line, default_user, default_port)
-        if host:
+        if host and (not host_glob or fnmatch.fnmatch(host, host_glob)):
             hosts.append((host, port, user))
     return hosts
 
@@ -89,7 +92,6 @@ def parse_host(host, default_user=None, default_port=None):
 
     Returns a (host, port, user) triple.
     """
-    # TODO: when we stop supporting Python 2.4, switch to using str.partition.
     user = default_user
     port = default_port
     if '@' in host:

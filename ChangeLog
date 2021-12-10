@@ -1,3 +1,15 @@
+2020-04-05 依云 <lilydjwg at gmail.com>
+	* Version 2.3.4
+	  - Add -g/--host-glob option, which accepts a glob to match in hosts
+	  - Fixes
+2018-09-29 Jeffrey Lund <jefflund at gmail.com>
+	* Version 2.3.3
+	  - Added PSSH_NUMNODES enviroment variable
+	  - Added pardo helpers to psshlib
+2017-09-14 依云 <lilydjwg at gmail.com>
+	* Version 2.3.2
+	  - Remove support for Python 2.4
+	  - Many small fixes and code cleanup
 2012-02-02 Andrew McNabb <amcnabb at mcnabbs.org>
 	* Version 2.3.1
 	  - Fixed a problem where man pages were omitted from the tar file.

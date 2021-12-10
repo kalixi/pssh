@@ -64,7 +64,7 @@ def askpass_main():
         prompt = sys.argv[1]
         if verbose:
             sys.stderr.write('pssh-askpass received prompt: "%s"\n' % prompt)
-        if not prompt.strip().lower().endswith('password:'):
+        if not (prompt.strip().lower().endswith('password:') or 'enter passphrase for key' in prompt.strip().lower()):
             sys.stderr.write(prompt)
             sys.stderr.write('\n')
             sys.exit(1)

@@ -3,7 +3,8 @@
 # Copyright (c) 2009, Andrew McNabb
 # Copyright (c) 2003-2008, Brent N. Chun
 
-import os 
+import os
+import subprocess
 import sys
 import shutil
 import tempfile
@@ -26,7 +27,7 @@ class PsshTest(unittest.TestCase):
         self.outDir = tempfile.mkdtemp()
         self.errDir = tempfile.mkdtemp()
 
-    def teardown(self):
+    def tearDown(self):
         shutil.rmtree(self.errDir)
         shutil.rmtree(self.outDir)
 
@@ -35,7 +36,7 @@ class PsshTest(unittest.TestCase):
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/pssh -h %s -l %s -p 64 -o %s -e %s -t 60 -v -P -i uptime < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
         for host in g_hosts:
             stdout = open("%s/%s" % (self.outDir, host)).read()
@@ -46,7 +47,7 @@ class PsshTest(unittest.TestCase):
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/pssh --hosts=%s --user=%s --par=64 --outdir=%s --errdir=%s --timeout=60 --verbose --print --inline uptime < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
         for host in g_hosts:
             stdout = open("%s/%s" % (self.outDir, host)).read()
@@ -56,8 +57,8 @@ class PsshTest(unittest.TestCase):
         hostsFile = tempfile.NamedTemporaryFile()
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
-        cmd = "%s/bin/pssh -h %s -l %s -p 64 -o %s -e %s -t 60 -v -P -i ls /foobarbaz < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        cmd = "%s/bin/pssh -h %s -l %s -p 64 -o %s -e %s -t 60 -v -P -i ls /doesnotexist < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
         for host in g_hosts:
             stdout = open("%s/%s" % (self.outDir, host)).read()
@@ -70,7 +71,7 @@ class PscpTest(unittest.TestCase):
         self.outDir = tempfile.mkdtemp()
         self.errDir = tempfile.mkdtemp()
 
-    def teardown(self):
+    def tearDown(self):
         shutil.rmtree(self.errDir)
         shutil.rmtree(self.outDir)
         try:
@@ -81,14 +82,14 @@ class PscpTest(unittest.TestCase):
     def testShortOpts(self):
         for host in g_hosts:
             cmd = "ssh %s@%s rm -rf /tmp/pssh.test" % (g_user, host)
-            rv = os.system(cmd)
+            rv = subprocess.call(cmd, shell=True)
             self.assertEqual(rv, 0)
 
         hostsFile = tempfile.NamedTemporaryFile()
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/pscp -h %s -l %s -p 64 -o %s -e %s -t 60 /etc/hosts /tmp/pssh.test < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
         for host in g_hosts:
             cmd = "ssh %s@%s cat /tmp/pssh.test" % (g_user, host)
@@ -98,14 +99,14 @@ class PscpTest(unittest.TestCase):
     def testLongOpts(self):
         for host in g_hosts:
             cmd = "ssh %s@%s rm -rf /tmp/pssh.test" % (g_user, host)
-            rv = os.system(cmd)
+            rv = subprocess.call(cmd, shell=True)
             self.assertEqual(rv, 0)
 
         hostsFile = tempfile.NamedTemporaryFile()
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/pscp --hosts=%s --user=%s --par=64 --outdir=%s --errdir=%s --timeout=60 /etc/hosts /tmp/pssh.test < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
         for host in g_hosts:
             cmd = "ssh %s@%s cat /tmp/pssh.test" % (g_user, host)
@@ -115,14 +116,14 @@ class PscpTest(unittest.TestCase):
     def testRecursive(self):
         for host in g_hosts:
             cmd = "ssh %s@%s rm -rf /tmp/pssh.test" % (g_user, host)
-            rv = os.system(cmd)
+            rv = subprocess.call(cmd, shell=True)
             self.assertEqual(rv, 0)
 
         hostsFile = tempfile.NamedTemporaryFile()
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/pscp -r -h %s -l %s -p 64 -o %s -e %s -t 60 /etc/init.d /tmp/pssh.test < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
         files = os.popen("ls -R /etc/init.d | sed 1d | sort").read().strip()
         for host in g_hosts:
@@ -135,7 +136,7 @@ class PslurpTest(unittest.TestCase):
         self.outDir = tempfile.mkdtemp()
         self.errDir = tempfile.mkdtemp()
 
-    def teardown(self):
+    def tearDown(self):
         shutil.rmtree(self.errDir)
         shutil.rmtree(self.outDir)
 
@@ -150,7 +151,7 @@ class PslurpTest(unittest.TestCase):
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/pslurp -L /tmp/pssh.test -h %s -l %s -p 64 -o %s -e %s -t 60 /etc/hosts hosts < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
 
         for host in g_hosts:
@@ -169,7 +170,7 @@ class PslurpTest(unittest.TestCase):
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/pslurp --localdir=/tmp/pssh.test --hosts=%s --user=%s --par=64 --outdir=%s --errdir=%s --timeout=60 /etc/hosts hosts < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
 
         for host in g_hosts:
@@ -188,7 +189,7 @@ class PslurpTest(unittest.TestCase):
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/pslurp -r -L /tmp/pssh.test -h %s -l %s -p 64 -o %s -e %s -t 60 /etc/init.d init.d < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
 
         for host in g_hosts:
@@ -201,21 +202,21 @@ class PrsyncTest(unittest.TestCase):
         self.outDir = tempfile.mkdtemp()
         self.errDir = tempfile.mkdtemp()
 
-    def teardown(self):
+    def tearDown(self):
         shutil.rmtree(self.errDir)
         shutil.rmtree(self.outDir)
 
     def testShortOpts(self):
         for host in g_hosts:
             cmd = "ssh %s@%s rm -rf /tmp/pssh.test" % (g_user, host)
-            rv = os.system(cmd)
+            rv = subprocess.call(cmd, shell=True)
             self.assertEqual(rv, 0)
 
         hostsFile = tempfile.NamedTemporaryFile()
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/prsync -h %s -l %s -p 64 -o %s -e %s -t 60 -a -z /etc/hosts /tmp/pssh.test < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
         for host in g_hosts:
             cmd = "ssh %s@%s cat /tmp/pssh.test" % (g_user, host)
@@ -225,14 +226,14 @@ class PrsyncTest(unittest.TestCase):
     def testLongOpts(self):
         for host in g_hosts:
             cmd = "ssh %s@%s rm -rf /tmp/pssh.test" % (g_user, host)
-            rv = os.system(cmd)
+            rv = subprocess.call(cmd, shell=True)
             self.assertEqual(rv, 0)
 
         hostsFile = tempfile.NamedTemporaryFile()
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/prsync --hosts=%s --user=%s --par=64 --outdir=%s --errdir=%s --timeout=60 --archive --compress /etc/hosts /tmp/pssh.test < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
         for host in g_hosts:
             cmd = "ssh %s@%s cat /tmp/pssh.test" % (g_user, host)
@@ -242,14 +243,14 @@ class PrsyncTest(unittest.TestCase):
     def testRecursive(self):
         for host in g_hosts:
             cmd = "ssh %s@%s rm -rf /tmp/pssh.test" % (g_user, host)
-            rv = os.system(cmd)
+            rv = subprocess.call(cmd, shell=True)
             self.assertEqual(rv, 0)
 
         hostsFile = tempfile.NamedTemporaryFile()
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/prsync -r -h %s -l %s -p 64 -o %s -e %s -t 60 -a -z /etc/init.d/ /tmp/pssh.test < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
         files = os.popen("ls -R /etc/init.d | sed 1d | sort").read().strip()
         for host in g_hosts:
@@ -262,7 +263,7 @@ class PnukeTest(unittest.TestCase):
         self.outDir = tempfile.mkdtemp()
         self.errDir = tempfile.mkdtemp()
 
-    def teardown(self):
+    def tearDown(self):
         shutil.rmtree(self.errDir)
         shutil.rmtree(self.outDir)
 
@@ -271,12 +272,12 @@ class PnukeTest(unittest.TestCase):
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/pssh -h %s -l %s -p 64 -o %s -e %s -t 60 -v sleep 60 < /dev/null &" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        os.system(cmd)
+        subprocess.call(cmd, shell=True)
         time.sleep(5)
 
         cmd = "%s/bin/pnuke -h %s -l %s -p 64 -o %s -e %s -t 60 -v sleep < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
         print cmd
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
 
     def testLongOpts(self):
@@ -284,12 +285,12 @@ class PnukeTest(unittest.TestCase):
         hostsFile.write("".join(map(lambda x: "%s\n" % x, g_hosts)))
         hostsFile.flush()
         cmd = "%s/bin/pssh --hosts=%s --user=%s --par=64 --outdir=%s --errdir=%s --timeout=60 --verbose sleep 60 < /dev/null &" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        os.system(cmd)
+        subprocess.call(cmd, shell=True)
         time.sleep(5)
 
         cmd = "%s/bin/pnuke --hosts=%s --user=%s --par=64 --outdir=%s --errdir=%s --timeout=60 --verbose sleep < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
         print cmd
-        rv = os.system(cmd)
+        rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
 
 if __name__ == '__main__':

@@ -69,7 +69,7 @@ class PasswordServer(object):
         buffer = self.buffermap[fd]
         conn = self.socketmap[fd]
         try:
-            bytes_written = conn.send(buffer)
+            bytes_written = conn.send(buffer.encode())
         except socket.error:
             _, e, _ = sys.exc_info()
             number = e.args[0]

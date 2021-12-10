@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- Mode: python -*-
 
 # Copyright (c) 2009-2012, Andrew McNabb
@@ -11,7 +11,6 @@ Note that remote must be an absolute path.
 """
 
 import os
-import re
 import sys
 
 parent, bindir = os.path.split(os.path.dirname(os.path.abspath(sys.argv[0])))
@@ -37,6 +36,8 @@ def option_parser():
             help='use rsync compression (OPTIONAL)')
     parser.add_option('-S', '--ssh-args', metavar="ARGS", dest='ssh_args',
             action='store', help='extra arguments for ssh')
+    parser.add_option('-d', '--download', dest='download', action='store_true',
+            help='download files instead, reversing local and remote (OPTIONAL)')
 
     return parser
 
@@ -84,11 +85,22 @@ def do_prsync(hosts, local, remote, opts):
             cmd.append('-z')
         if opts.extra:
             cmd.extend(opts.extra)
-        cmd.extend(local)
-        if user:
-            cmd.append('%s@%s:%s' % (user, host, remote))
+        if opts.download:
+            if len(local) != 1:
+                sys.exit('can only download one target at a time')
+            if user:
+                cmd.append('%s@%s:%s' % (user, host, local[0]))
+            else:
+                cmd.append('%s:%s' % (host, local[0]))
+            localpath = "%s/%s" % (remote, host)
+            os.makedirs(localpath)
+            cmd.append(localpath)
         else:
-            cmd.append('%s:%s' % (host, remote))
+            cmd.extend(local)
+            if user:
+                cmd.append('%s@%s:%s' % (user, host, remote))
+            else:
+                cmd.append('%s:%s' % (host, remote))
         t = Task(host, port, user, cmd, opts)
         manager.add_task(t)
     try:
@@ -96,7 +108,7 @@ def do_prsync(hosts, local, remote, opts):
     except FatalError:
         sys.exit(1)
 
-    if min(statuses) < 0:
+    if statuses and min(statuses) < 0:
         # At least one process was killed.
         sys.exit(3)
     for status in statuses:
@@ -108,7 +120,7 @@ if __name__ == "__main__":
     local = args[0:-1]
     remote = args[-1]
     try:
-        hosts = psshutil.read_host_files(opts.host_files,
+        hosts = psshutil.read_host_files(opts.host_files, opts.host_glob,
             default_user=opts.user)
     except IOError:
         _, e, _ = sys.exc_info()

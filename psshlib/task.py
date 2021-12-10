@@ -1,3 +1,4 @@
+# Copyright (c) 2018, Jeffrey Lund
 # Copyright (c) 2009-2012, Andrew McNabb
 
 from errno import EINTR
@@ -69,7 +70,7 @@ class Task(object):
         except AttributeError:
             self.inline_stdout = False
 
-    def start(self, nodenum, iomap, writer, askpass_socket=None):
+    def start(self, nodenum, numnodes, iomap, writer, askpass_socket=None):
         """Starts the process and registers files with the IOMap."""
         self.writer = writer
 
@@ -77,8 +78,9 @@ class Task(object):
             self.outfile, self.errfile = writer.open_files(self.pretty_host)
 
         # Set up the environment.
-        environ = dict(os.environ)
+        environ = os.environ.copy()
         environ['PSSH_NODENUM'] = str(nodenum)
+        environ['PSSH_NUMNODES'] = str(numnodes)
         environ['PSSH_HOST'] = self.host
         # Disable the GNOME pop-up password dialog and allow ssh to use
         # askpass.py to get a provided password.  If the module file is
@@ -140,7 +142,9 @@ class Task(object):
 
     def running(self):
         """Finds if the process has terminated and saves the return code."""
-        if self.stdin or self.stdout or self.stderr:
+        # don't check self.stderr; it's still open when ControlPersist=yes is
+        # set for ssh
+        if self.stdin or self.stdout:
             return True
         if self.proc:
             self.exitstatus = self.proc.poll()
@@ -192,8 +196,9 @@ class Task(object):
                 if self.outfile:
                     self.writer.write(self.outfile, buf)
                 if self.print_out:
-                    sys.stdout.write('%s: %s' % (self.host, buf))
-                    if buf[-1] != '\n':
+                    text = buf.decode(errors='replace')
+                    sys.stdout.write('%s: %s' % (self.host, text))
+                    if text[-1] != '\n':
                         sys.stdout.write('\n')
             else:
                 self.close_stdout(iomap)

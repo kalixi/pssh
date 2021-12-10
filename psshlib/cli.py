@@ -39,6 +39,8 @@ def common_parser():
             help='output directory for stdout files (OPTIONAL)')
     parser.add_option('-e', '--errdir', dest='errdir',
             help='output directory for stderr files (OPTIONAL)')
+    parser.add_option('--fileappend', dest='fileappend', action='store_true',
+            help='append to existing output/error files, creates file(s) if missing (OPTIONAL)')
     parser.add_option('-t', '--timeout', dest='timeout', type='int',
             help='timeout (secs) (0 = no timeout) per host (OPTIONAL)')
     parser.add_option('-O', '--option', dest='options', action='append',
@@ -53,6 +55,8 @@ def common_parser():
             'spaces, quotes, and backslashes')
     parser.add_option('-X', '--extra-arg', dest='extra', action='append',
             metavar='ARG', help='Extra command-line argument')
+    parser.add_option('-g', '--host-glob', dest='host_glob', type='string',
+            help='Shell-style glob to filter hosts (OPTIONAL)')
 
     return parser
 

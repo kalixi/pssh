@@ -2,15 +2,12 @@
 
 from errno import EINTR
 import os
+import fcntl
 import select
 import signal
 import sys
 import threading
-
-try:
-    import queue
-except ImportError:
-    import Queue as queue
+import queue
 
 from psshlib.askpass_server import PasswordServer
 from psshlib import psshutil
@@ -39,9 +36,11 @@ class Manager(object):
         self.askpass = opts.askpass
         self.outdir = opts.outdir
         self.errdir = opts.errdir
+        self.fileappend = opts.fileappend
         self.iomap = make_iomap()
 
-        self.taskcount = 0
+        self.next_nodenum = 0
+        self.numnodes = 0
         self.tasks = []
         self.running = []
         self.done = []
@@ -52,7 +51,7 @@ class Manager(object):
         """Processes tasks previously added with add_task."""
         try:
             if self.outdir or self.errdir:
-                writer = Writer(self.outdir, self.errdir)
+                writer = Writer(self.outdir, self.errdir, self.fileappend)
                 writer.start()
             else:
                 writer = None
@@ -91,13 +90,7 @@ class Manager(object):
         statuses = [task.exitstatus for task in self.done]
         return statuses
 
-    def clear_sigchld_handler(self):
-        signal.signal(signal.SIGCHLD, signal.SIG_DFL)
-
     def set_sigchld_handler(self):
-        # TODO: find out whether set_wakeup_fd still works if the default
-        # signal handler is used (I'm pretty sure it doesn't work if the
-        # signal is ignored).
         signal.signal(signal.SIGCHLD, self.handle_sigchld)
         # This should keep reads and writes from getting EINTR.
         if hasattr(signal, 'siginterrupt'):
@@ -105,10 +98,6 @@ class Manager(object):
 
     def handle_sigchld(self, number, frame):
         """Apparently we need a sigchld handler to make set_wakeup_fd work."""
-        # Write to the signal pipe (only for Python <2.5, where the
-        # set_wakeup_fd method doesn't exist).
-        if self.iomap.wakeup_writefd:
-            os.write(self.iomap.wakeup_writefd, '\0')
         for task in self.running:
             if task.proc:
                 task.proc.poll()
@@ -119,32 +108,22 @@ class Manager(object):
     def add_task(self, task):
         """Adds a Task to be processed with run()."""
         self.tasks.append(task)
+        self.numnodes += 1
 
     def update_tasks(self, writer):
         """Reaps tasks and starts as many new ones as allowed."""
-        # Mask signals to work around a Python bug:
-        #   http://bugs.python.org/issue1068268
-        # Since sigprocmask isn't in the stdlib, clear the SIGCHLD handler.
-        # Since signals are masked, reap_tasks needs to be called once for
-        # each loop.
-        keep_running = True
-        while keep_running:
-            self.clear_sigchld_handler()
+        while True:
             self._start_tasks_once(writer)
-            self.set_sigchld_handler()
-            keep_running = self.reap_tasks()
+            if self.reap_tasks() == 0:
+                break
 
     def _start_tasks_once(self, writer):
-        """Starts tasks once.
-
-        Due to http://bugs.python.org/issue1068268, signals must be masked
-        when this method is called.
-        """
+        """Starts tasks once."""
         while 0 < len(self.tasks) and len(self.running) < self.limit:
             task = self.tasks.pop(0)
             self.running.append(task)
-            task.start(self.taskcount, self.iomap, writer, self.askpass_socket)
-            self.taskcount += 1
+            task.start(self.next_nodenum, self.numnodes, self.iomap, writer, self.askpass_socket)
+            self.next_nodenum += 1
 
     def reap_tasks(self):
         """Checks to see if any tasks have terminated.
@@ -209,13 +188,9 @@ class IOMap(object):
 
         # Setup the wakeup file descriptor to avoid hanging on lost signals.
         wakeup_readfd, wakeup_writefd = os.pipe()
+        fcntl.fcntl(wakeup_writefd, fcntl.F_SETFL, os.O_NONBLOCK)
         self.register_read(wakeup_readfd, self.wakeup_handler)
-        # TODO: remove test when we stop supporting Python <2.5
-        if hasattr(signal, 'set_wakeup_fd'):
-            signal.set_wakeup_fd(wakeup_writefd)
-            self.wakeup_writefd = None
-        else:
-            self.wakeup_writefd = wakeup_writefd
+        signal.set_wakeup_fd(wakeup_writefd)
 
     def register_read(self, fd, handler):
         """Registers an IO handler for a file descriptor for reading."""
@@ -340,13 +315,18 @@ class Writer(threading.Thread):
     EOF = object()
     ABORT = object()
 
-    def __init__(self, outdir, errdir):
+    def __init__(self, outdir, errdir, fileappend):
         threading.Thread.__init__(self)
         # A daemon thread automatically dies if the program is terminated.
         self.setDaemon(True)
         self.queue = queue.Queue()
         self.outdir = outdir
         self.errdir = errdir
+
+        if fileappend:
+            self.filewritemode = 'ab'
+        else:
+            self.filewritemode = 'wb'
 
         self.host_counts = {}
         self.files = {}
@@ -358,15 +338,18 @@ class Writer(threading.Thread):
                 return
 
             if data == self.OPEN:
-                self.files[filename] = open(filename, 'wb', buffering=1)
-                psshutil.set_cloexec(self.files[filename])
+                self.files[filename] = None
             else:
                 dest = self.files[filename]
                 if data == self.EOF:
-                    dest.close()
+                    if dest is not None:
+                        dest.close()
                 else:
+                    if dest is None:
+                        dest = self.files[filename] = open(
+                            filename, self.filewritemode, buffering=0)
+                        psshutil.set_cloexec(dest)
                     dest.write(data)
-                    dest.flush()
 
     def open_files(self, host):
         """Called from another thread to create files for stdout and stderr.

@@ -12,6 +12,8 @@ pssh \(em parallel ssh program
 .IR hosts_file ]
 .RB [ \-H
 .RI [ user @] host [: port ]]
+.RB [ \-g
+.IR pattern ]
 .RB [ \-l
 .IR user ]
 .RB [ \-p
@@ -36,6 +38,8 @@ pssh \(em parallel ssh program
 .IR hosts_file ]
 .RB [ \-H
 .RI [ user @] host [: port ]]
+.RB [ \-g
+.IR pattern ]
 .RB [ \-l
 .IR user ]
 .RB [ \-p
@@ -63,14 +67,15 @@ is a program for executing ssh in parallel on a number of hosts.  It provides
 features such as sending input to all of the processes, passing a password
 to ssh, saving output to files, and timing out.
 
-The PSSH_NODENUM and PSSH_HOST environment variables are sent to the remote
-host.  The PSSH_NODENUM variable is assigned a unique number for each ssh
-connection, starting with 0 and counting up.  The PSSH_HOST variable is
-assigned the name of the host as specified in the hosts list.  Note that sshd
-drops environment variables by default, so sshd_config on the remote host must
-include the line:
+The PSSH_NODENUM, PSSH_NUMNODES, PSSH_HOST environment variables are sent to
+the remote host.  The PSSH_NODENUM variable is assigned a unique number for
+each ssh connection, starting with 0 and counting up.  The PSSH_NUMNODES
+variable is assigned the total number of node being used. The PSSH_HOST
+variable is assigned the name of the host as specified in the hosts list.  Note
+that sshd drops environment variables by default, so sshd_config on the remote
+host must include the line:
 .RS
-AcceptEnv PSSH_NODENUM PSSH_HOST
+AcceptEnv PSSH_NODENUM PSSH_NUMNODES PSSH_HOST
 .RE
 
 .SH OPTIONS
@@ -119,6 +124,16 @@ Add the given host strings to the list of hosts.  This option may be given
 multiple times, and may be used in conjunction with the
 .B \-h
 option.
+
+.TP
+.BI \-g " pattern"
+.PD 0
+.TP
+.BI \-\-host\-glob " pattern"
+Filter hosts with glob pattern
+.IR pattern .
+This uses the same syntax as shell globs. Make sure to quote the pattern to
+prevent shell from expanding it. Examples are "*web*" and "company_*".
 
 .TP
 .BI \-l " user"
@@ -233,7 +248,7 @@ Display standard output (but not standard error) as each host completes.
 Include error messages from ssh with the
 .B \-i
 and
-.B \e
+.B \-e
 options.
 
 .TP
@@ -375,12 +390,12 @@ Written by
 Brent N. Chun <bnc@theether.org> and
 Andrew McNabb <amcnabb@mcnabbs.org>.
 
-http://code.google.com/p/parallel-ssh/
+https://github.com/lilydjwg/pssh
 
 
 .SH SEE ALSO
 .BR ssh (1),
-.BR ssh_config(5),
+.BR ssh_config (5),
 .BR pscp (1),
 .BR prsync (1),
 .BR pslurp (1),
