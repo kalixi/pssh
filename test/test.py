@@ -276,7 +276,7 @@ class PnukeTest(unittest.TestCase):
         time.sleep(5)
 
         cmd = "%s/bin/pnuke -h %s -l %s -p 64 -o %s -e %s -t 60 -v sleep < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        print cmd
+        print(cmd)
         rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
 
@@ -289,7 +289,7 @@ class PnukeTest(unittest.TestCase):
         time.sleep(5)
 
         cmd = "%s/bin/pnuke --hosts=%s --user=%s --par=64 --outdir=%s --errdir=%s --timeout=60 --verbose sleep < /dev/null" % (basedir, hostsFile.name, g_user, self.outDir, self.errDir)
-        print cmd
+        print(cmd)
         rv = subprocess.call(cmd, shell=True)
         self.assertEqual(rv, 0)
 
