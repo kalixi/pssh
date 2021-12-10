@@ -23,15 +23,18 @@ import socket
 import sys
 import textwrap
 
+__all__ = ['executable_path', 'askpass_main', 'ASKPASS_PATHS']
+
 bin_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 askpass_bin_path = os.path.join(bin_dir, 'pssh-askpass')
 ASKPASS_PATHS = (askpass_bin_path,
-        '/usr/libexec/pssh/pssh-askpass',
-        '/usr/local/libexec/pssh/pssh-askpass',
-        '/usr/lib/pssh/pssh-askpass',
-        '/usr/local/lib/pssh/pssh-askpass')
+                 '/usr/libexec/pssh/pssh-askpass',
+                 '/usr/local/libexec/pssh/pssh-askpass',
+                 '/usr/lib/pssh/pssh-askpass',
+                 '/usr/local/lib/pssh/pssh-askpass')
 
 _executable_path = None
+
 
 def executable_path():
     """Determines the value to use for SSH_ASKPASS.
@@ -47,10 +50,11 @@ def executable_path():
         else:
             _executable_path = ''
             sys.stderr.write(textwrap.fill("Warning: could not find an"
-                    " executable path for askpass because PSSH was not"
-                    " installed correctly.  Password prompts will not work."))
+                                           " executable path for askpass because PSSH was not"
+                                           " installed correctly.  Password prompts will not work."))
             sys.stderr.write('\n')
     return _executable_path
+
 
 def askpass_main():
     """Connects to pssh over the socket specified at PSSH_ASKPASS_SOCKET."""
@@ -75,8 +79,8 @@ def askpass_main():
     address = os.getenv('PSSH_ASKPASS_SOCKET')
     if not address:
         sys.stderr.write(textwrap.fill("pssh error: SSH requested a password."
-                " Please create SSH keys or use the -A option to provide a"
-                " password."))
+                                       " Please create SSH keys or use the -A option to provide a"
+                                       " password."))
         sys.stderr.write('\n')
         sys.exit(1)
 
