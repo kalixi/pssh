@@ -2,11 +2,25 @@
 # Copyright (c) 2003-2008, Brent N. Chun
 
 import fcntl
+import fnmatch
 import re
 import sys
-import fnmatch
+import os
+
+from psshlib.groupsets import GroupSet
 
 HOST_FORMAT = 'Host format is [user@]host[:port] [user]'
+GROUP_CONF = '~/.config/pssh/hostgroups'
+GROUP_CONF_ABS = os.path.expanduser(GROUP_CONF)
+
+
+def read_host_groups(groups, default_user=None, default_port=None):
+    """Reads given host groups and returns list of (host, port, user) triples."""
+    grpset = GroupSet(GROUP_CONF_ABS)
+    grps = [grpset[g] for g in groups]
+    grps = [x for x in set([i for o in grps for i in o])]
+    grps.sort()
+    return [parse_host_entry(x, default_user, default_port) for x in grps]
 
 
 def read_host_files(paths, host_glob, default_user=None, default_port=None):
@@ -60,7 +74,7 @@ def parse_host_entry(line, default_user, default_port):
     fields = line.split()
     if len(fields) > 2:
         sys.stderr.write('Bad line: "%s". Format should be'
-                ' [user@]host[:port] [user]\n' % line)
+                         ' [user@]host[:port] [user]\n' % line)
         return None, None, None
     host_field = fields[0]
     host, port, user = parse_host(host_field, default_port=default_port)

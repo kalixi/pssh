@@ -13,33 +13,30 @@ Note that remote must be an absolute path.
 import os
 import sys
 
-parent, bindir = os.path.split(os.path.dirname(os.path.abspath(sys.argv[0])))
-if os.path.exists(os.path.join(parent, 'psshlib')):
-    sys.path.insert(0, parent)
-
 from psshlib import psshutil
+from psshlib.cli import common_defaults, common_parser
+from psshlib.manager import FatalError, Manager
 from psshlib.task import Task
-from psshlib.manager import Manager, FatalError
-from psshlib.cli import common_parser, common_defaults
+
 
 def option_parser():
     parser = common_parser()
     parser.usage = "%prog [OPTIONS] local remote"
-    parser.epilog = ("Example: prsync -r -h hosts.txt -l irb2 foo " +
-          "/home/irb2/foo")
+    parser.epilog = ("Example: prsync -r -h hosts.txt -l irb2 foo /home/irb2/foo")
 
     parser.add_option('-r', '--recursive', dest='recursive',
-            action='store_true', help='recusively copy directories (OPTIONAL)')
+                      action='store_true', help='recusively copy directories (OPTIONAL)')
     parser.add_option('-a', '--archive', dest='archive', action='store_true',
-            help='use rsync -a (archive mode) (OPTIONAL)')
+                      help='use rsync -a (archive mode) (OPTIONAL)')
     parser.add_option('-z', '--compress', dest='compress', action='store_true',
-            help='use rsync compression (OPTIONAL)')
+                      help='use rsync compression (OPTIONAL)')
     parser.add_option('-S', '--ssh-args', metavar="ARGS", dest='ssh_args',
-            action='store', help='extra arguments for ssh')
+                      action='store', help='extra arguments for ssh')
     parser.add_option('-d', '--download', dest='download', action='store_true',
-            help='download files instead, reversing local and remote (OPTIONAL)')
+                      help='download files instead, reversing local and remote (OPTIONAL)')
 
     return parser
+
 
 def parse_args():
     parser = option_parser()
@@ -53,10 +50,11 @@ def parse_args():
     if len(args) < 2:
         parser.error('Remote path not specified.')
 
-    if not opts.host_files and not opts.host_strings:
+    if not opts.host_files and not opts.host_strings and not opts.host_groups:
         parser.error('Hosts not specified.')
 
     return opts, args
+
 
 def do_prsync(hosts, local, remote, opts):
     if opts.outdir and not os.path.exists(opts.outdir):
@@ -115,13 +113,14 @@ def do_prsync(hosts, local, remote, opts):
         if status != 0:
             sys.exit(4)
 
+
 if __name__ == "__main__":
     opts, args = parse_args()
     local = args[0:-1]
     remote = args[-1]
     try:
         hosts = psshutil.read_host_files(opts.host_files, opts.host_glob,
-            default_user=opts.user)
+                                         default_user=opts.user)
     except IOError:
         _, e, _ = sys.exc_info()
         sys.stderr.write('Could not open hosts file: %s\n' % e.strerror)
@@ -129,4 +128,9 @@ if __name__ == "__main__":
     if opts.host_strings:
         for s in opts.host_strings:
             hosts.extend(psshutil.parse_host_string(s, default_user=opts.user))
+    if opts.host_groups:
+        if not os.path.exists(psshutil.GROUP_CONF_ABS):
+            sys.stderr.write('Group configuration file not found (%s)\n' % psshutil.GROUP_CONF)
+            sys.exit(1)
+        hosts.extend(psshutil.read_host_groups(opts.host_groups, default_user=opts.user))
     do_prsync(hosts, local, remote, opts)

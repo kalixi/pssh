@@ -10,7 +10,7 @@ import textwrap
 from psshlib import version
 
 _DEFAULT_PARALLELISM = 32
-_DEFAULT_TIMEOUT     = 0 # "infinity" by default
+_DEFAULT_TIMEOUT = 0  # "infinity" by default
 
 
 def common_parser():
@@ -20,43 +20,46 @@ def common_parser():
     # The "resolve" conflict handler avoids errors from the hosts option
     # conflicting with the help option.
     parser = optparse.OptionParser(conflict_handler='resolve',
-            version=version.VERSION)
+                                   version=version.VERSION)
     # Ensure that options appearing after the command are sent to ssh.
     parser.disable_interspersed_args()
     parser.epilog = "Example: pssh -h nodes.txt -l irb2 -o /tmp/foo uptime"
 
     parser.add_option('-h', '--hosts', dest='host_files', action='append',
-            metavar='HOST_FILE',
-            help='hosts file (each line "[user@]host[:port]")')
+                      metavar='HOST_FILE',
+                      help='hosts file (each line "[user@]host[:port]")')
+    parser.add_option('-G', '--groups', dest='host_groups', action='append',
+                      metavar='HOSTGROUPS_FILE',
+                      help='host groups (as defined in ~/.config/pssh/hostgroups file)')
     parser.add_option('-H', '--host', dest='host_strings', action='append',
-            metavar='HOST_STRING',
-            help='additional host entries ("[user@]host[:port]")')
+                      metavar='HOST_STRING',
+                      help='additional host entries ("[user@]host[:port]")')
     parser.add_option('-l', '--user', dest='user',
-            help='username (OPTIONAL)')
+                      help='username (OPTIONAL)')
     parser.add_option('-p', '--par', dest='par', type='int',
-            help='max number of parallel threads (OPTIONAL)')
+                      help='max number of parallel threads (OPTIONAL)')
     parser.add_option('-o', '--outdir', dest='outdir',
-            help='output directory for stdout files (OPTIONAL)')
+                      help='output directory for stdout files (OPTIONAL)')
     parser.add_option('-e', '--errdir', dest='errdir',
-            help='output directory for stderr files (OPTIONAL)')
+                      help='output directory for stderr files (OPTIONAL)')
     parser.add_option('--fileappend', dest='fileappend', action='store_true',
-            help='append to existing output/error files, creates file(s) if missing (OPTIONAL)')
+                      help='append to existing output/error files, creates file(s) if missing (OPTIONAL)')
     parser.add_option('-t', '--timeout', dest='timeout', type='int',
-            help='timeout (secs) (0 = no timeout) per host (OPTIONAL)')
+                      help='timeout (secs) (0 = no timeout) per host (OPTIONAL)')
     parser.add_option('-O', '--option', dest='options', action='append',
-            metavar='OPTION', help='SSH option (OPTIONAL)')
+                      metavar='OPTION', help='SSH option (OPTIONAL)')
     parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
-            help='turn on warning and diagnostic messages (OPTIONAL)')
+                      help='turn on warning and diagnostic messages (OPTIONAL)')
     parser.add_option('-A', '--askpass', dest='askpass', action='store_true',
-            help='Ask for a password (OPTIONAL)')
+                      help='Ask for a password (OPTIONAL)')
     parser.add_option('-x', '--extra-args', action='callback', type='string',
-            metavar='ARGS', callback=shlex_append, dest='extra',
-            help='Extra command-line arguments, with processing for '
-            'spaces, quotes, and backslashes')
+                      metavar='ARGS', callback=shlex_append, dest='extra',
+                      help='Extra command-line arguments, with processing for '
+                      'spaces, quotes, and backslashes')
     parser.add_option('-X', '--extra-arg', dest='extra', action='append',
-            metavar='ARG', help='Extra command-line argument')
+                      metavar='ARG', help='Extra command-line argument')
     parser.add_option('-g', '--host-glob', dest='host_glob', type='string',
-            help='Shell-style glob to filter hosts (OPTIONAL)')
+                      help='Shell-style glob to filter hosts (OPTIONAL)')
 
     return parser
 
@@ -65,19 +68,19 @@ def common_defaults(**kwargs):
     defaults = dict(par=_DEFAULT_PARALLELISM, timeout=_DEFAULT_TIMEOUT)
     defaults.update(**kwargs)
     envvars = [('user', 'PSSH_USER'),
-            ('par', 'PSSH_PAR'),
-            ('outdir', 'PSSH_OUTDIR'),
-            ('errdir', 'PSSH_ERRDIR'),
-            ('timeout', 'PSSH_TIMEOUT'),
-            ('verbose', 'PSSH_VERBOSE'),
-            ('print_out', 'PSSH_PRINT'),
-            ('askpass', 'PSSH_ASKPASS'),
-            ('inline', 'PSSH_INLINE'),
-            ('recursive', 'PSSH_RECURSIVE'),
-            ('archive', 'PSSH_ARCHIVE'),
-            ('compress', 'PSSH_COMPRESS'),
-            ('localdir', 'PSSH_LOCALDIR'),
-            ]
+               ('par', 'PSSH_PAR'),
+               ('outdir', 'PSSH_OUTDIR'),
+               ('errdir', 'PSSH_ERRDIR'),
+               ('timeout', 'PSSH_TIMEOUT'),
+               ('verbose', 'PSSH_VERBOSE'),
+               ('print_out', 'PSSH_PRINT'),
+               ('askpass', 'PSSH_ASKPASS'),
+               ('inline', 'PSSH_INLINE'),
+               ('recursive', 'PSSH_RECURSIVE'),
+               ('archive', 'PSSH_ARCHIVE'),
+               ('compress', 'PSSH_COMPRESS'),
+               ('localdir', 'PSSH_LOCALDIR'),
+               ]
     for option, var, in envvars:
         value = os.getenv(var)
         if value:
@@ -90,8 +93,8 @@ def common_defaults(**kwargs):
     value = os.getenv('PSSH_HOSTS')
     if value:
         message1 = ('Warning: the PSSH_HOSTS environment variable is '
-            'deprecated.  Please use the "-h" option instead, and consider '
-            'creating aliases for convenience.  For example:')
+                    'deprecated.  Please use the "-h" option instead, and consider '
+                    'creating aliases for convenience.  For example:')
         message2 = "    alias pssh_abc='pssh -h /path/to/hosts_abc'"
         sys.stderr.write(textwrap.fill(message1))
         sys.stderr.write('\n')
