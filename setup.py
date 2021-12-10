@@ -13,7 +13,7 @@ setup(
     version = version.VERSION,
     author = "Andrew McNabb",
     author_email = "amcnabb@mcnabbs.org",
-    url = "https://github.com/lilydjwg/pssh",
+    url = "https://github.com/kalixi/pssh",
     description = "Parallel version of OpenSSH and related tools",
     long_description = long_description,
     license = "BSD",
