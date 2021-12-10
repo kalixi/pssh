@@ -1,16 +1,15 @@
 # Copyright (c) 2018, Jeffrey Lund
 # Copyright (c) 2009-2012, Andrew McNabb
 
-from errno import EINTR
-from subprocess import Popen, PIPE
 import os
 import signal
 import sys
 import time
 import traceback
+from errno import EINTR
+from subprocess import PIPE, Popen
 
-from psshlib import askpass_client
-from psshlib import color
+from psshlib import askpass_client, color
 
 BUFFER_SIZE = 1 << 16
 
@@ -26,6 +25,7 @@ class Task(object):
     Upon completion, the `exitstatus` attribute is set to the exit status
     of the process.
     """
+
     def __init__(self, host, port, user, cmd, opts, stdin=None):
         self.exitstatus = None
 
@@ -97,8 +97,9 @@ class Task(object):
 
         # Create the subprocess.  Since we carefully call set_cloexec() on
         # all open files, we specify close_fds=False.
+        print('%s cmd: %s' % (self.host, self.cmd))
         self.proc = Popen(self.cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                close_fds=False, preexec_fn=os.setsid, env=environ)
+                          close_fds=False, preexec_fn=os.setsid, env=environ)
         self.timestamp = time.time()
         if self.inputbuffer:
             self.stdin = self.proc.stdin
@@ -248,7 +249,7 @@ class Task(object):
         if self.verbose:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             exc = ("Exception: %s, %s, %s" %
-                    (exc_type, exc_value, traceback.format_tb(exc_traceback)))
+                   (exc_type, exc_value, traceback.format_tb(exc_traceback)))
         else:
             exc = str(e)
         self.failures.append(exc)
@@ -256,7 +257,7 @@ class Task(object):
     def report(self, n):
         """Pretty prints a status report after the Task completes."""
         error = ', '.join(self.failures)
-        tstamp = time.asctime().split()[3] # Current time
+        tstamp = time.asctime().split()[3]  # Current time
         if color.has_colors(sys.stdout):
             progress = color.c("[%s]" % color.B(n))
             success = color.g("[%s]" % color.B("SUCCESS"))
@@ -290,4 +291,3 @@ class Task(object):
                 sys.stdout.buffer.write(self.errorbuffer)
             except AttributeError:
                 sys.stdout.write(self.errorbuffer)
-
